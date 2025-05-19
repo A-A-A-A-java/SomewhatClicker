@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Somewhat Clicker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #counter {
+            font-size: 2em;
+            margin: 20px 0;
+        }
+        #clickButton {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+            background-size: 400% 400%;
+            animation: rainbow 3s linear infinite;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+        .rainbow-button {
+            background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+            background-size: 400% 400%;
+            animation: rainbow 3s linear infinite;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        #powerups {
+            margin-top: 30px;
+        }
+        .powerup {
+            margin: 10px 0;
+        }
+        .floating-text {
+            position: absolute;
+            animation: floatUp 1s ease-out forwards;
+            color: green;
+            font-weight: bold;
+        }
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Somewhat a Clicker.</h1>
+    <div id="counter">0</div>
+    <button id="clickButton">Click Me</button>
+
+    <div id="powerups">
+       <b> <h2>Powerups</h2></b>
+        <div class="powerup">
+            <button id="doubleClickPowerup" disabled>Click Power (Cost: 50)</button>
+            <p id="doubleClickLevel">Multiplier: x1</p>
+        </div>
+        <div class="powerup">
+            <button id="autoClickerPowerup" disabled>Autoclicker (Cost: 100)</button>
+            <p id="autoClickerLevel">Level: 0</p>
+        </div>
+    </div>
+
+    <div id="saveFiles">
+        <h2>Save Files</h2>
+        <button onclick="saveGame('1')">Save ①</button>
+        <button onclick="loadGame('1')">Load ①</button>
+        <button onclick="saveGame('2')">Save ②</button>
+        <button onclick="loadGame('2')">Load ②</button>
+    </div>
+
+    <script>
+        let count = 0;
+        let clickMultiplier = 1;
+        let doubleClickCost = 50;
+        let doubleClickLevel = 1;
+        let autoClickerLevel = 0;
+        let autoClickerCost = 100;
+        let autoClickerInterval = null;
+
+        const counterElement = document.getElementById('counter');
+        const button = document.getElementById('clickButton');
+        const doubleClickPowerup = document.getElementById('doubleClickPowerup');
+        const doubleClickLevelElement = document.getElementById('doubleClickLevel');
+        const autoClickerPowerup = document.getElementById('autoClickerPowerup');
+        const autoClickerLevelElement = document.getElementById('autoClickerLevel');
+
+        // Load saved game state from localStorage
+        function loadGame(slot) {
+            const savedData = JSON.parse(localStorage.getItem(slot));
+            if (savedData) {
+                count = savedData.count;
+                clickMultiplier = savedData.clickMultiplier;
+                doubleClickCost = savedData.doubleClickCost;
+                doubleClickLevel = savedData.doubleClickLevel;
+                autoClickerLevel = savedData.autoClickerLevel;
+                autoClickerCost = savedData.autoClickerCost;
+
+                // Restart the autoclicker if its level is greater than 0
+                if (autoClickerLevel > 0) {
+                    startAutoClicker();
+                }
+
+                updateUI();
+            }
+        }
+
+        // Save game state to localStorage
+        function saveGame(slot) {
+            const saveData = {
+                count,
+                clickMultiplier,
+                doubleClickCost,
+                doubleClickLevel,
+                autoClickerLevel,
+                autoClickerCost
+            };
+            localStorage.setItem(slot, JSON.stringify(saveData));
+            alert(`Your game has been safely saved to Slot ${slot}. You can load it later.`);
+        }
+
+        function updateUI() {
+            counterElement.textContent = count;
+            doubleClickLevelElement.textContent = `Multiplier: x${doubleClickLevel}`;
+            doubleClickPowerup.textContent = `Click Power (Cost: ${doubleClickCost})`;
+            autoClickerLevelElement.textContent = `Level: ${autoClickerLevel}`;
+            autoClickerPowerup.textContent = `Autoclicker (Cost: ${autoClickerCost})`;
+
+            doubleClickPowerup.disabled = count < doubleClickCost;
+            autoClickerPowerup.disabled = count < autoClickerCost;
+
+            if (count >= doubleClickCost) {
+                doubleClickPowerup.classList.add('rainbow-button');
+            } else {
+                doubleClickPowerup.classList.remove('rainbow-button');
+            }
+
+            if (count >= autoClickerCost) {
+                autoClickerPowerup.classList.add('rainbow-button');
+            } else {
+                autoClickerPowerup.classList.remove('rainbow-button');
+            }
+        }
+
+        button.addEventListener('click', (event) => {
+            count += clickMultiplier;
+            updateUI();
+
+            // Create floating +1 text
+            const floatingText = document.createElement('div');
+            floatingText.textContent = `+${clickMultiplier}`;
+            floatingText.className = 'floating-text';
+            floatingText.style.left = `${event.clientX}px`;
+            floatingText.style.top = `${event.clientY}px`;
+            document.body.appendChild(floatingText);
+
+            // Remove floating text after animation
+            setTimeout(() => {
+                floatingText.remove();
+            }, 1000);
+        });
+
+        doubleClickPowerup.addEventListener('click', () => {
+            if (count >= doubleClickCost) {
+                count -= doubleClickCost;
+                doubleClickLevel++;
+                clickMultiplier = doubleClickLevel;
+                doubleClickCost = Math.floor(doubleClickCost * 1.5);
+                updateUI();
+            }
+        });
+
+        autoClickerPowerup.addEventListener('click', () => {
+            if (count >= autoClickerCost) {
+                count -= autoClickerCost;
+                autoClickerLevel++;
+                autoClickerCost = Math.floor(autoClickerCost * 1.5);
+                updateUI();
+
+                if (autoClickerLevel === 1) {
+                    startAutoClicker();
+                }
+            }
+        });
+
+        function startAutoClicker() {
+            if (!autoClickerInterval) {
+                autoClickerInterval = setInterval(() => {
+                    count += autoClickerLevel;
+                    updateUI();
+                }, 1000);
+            }
+        }
+
+        // Initialize UI
+        updateUI();
+    </script>
+</body>
+<hr class="rounded">
+<div id="footer" style="background-color:cadetblue;">
+<p1 style="color:black;" style="font-size:25%;">You can open your browser settings to clear your data. By why would you?</p1> <br>
+    <p1 style="color:black;">You are running version: 0.1.2(R)</p1>
+    <br>
+    <p1>We are not responsible for any disputes you may have when using this program. You are using this at your own risk.</p1>
+</div>
+</html>
